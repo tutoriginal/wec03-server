@@ -21,6 +21,11 @@ mongoose.connect(config.mongo.uri, { useNewUrlParser: true, useUnifiedTopology: 
 
 const server = net.createServer(socket => {
 
+	setTimeout(() => {
+		socket.write('too late\n');
+		socket.end();
+	}, 3000);
+
 	var login = null;
 	var hash = null;
 	var code = null;
