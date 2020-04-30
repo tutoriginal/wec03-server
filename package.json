@@ -1,0 +1,8 @@
+{
+	"name": "wec03-server",
+	"dependencies": {
+		"dotenv": "^8.2.0",
+		"mongoose": "^5.9.10",
+		"request": "^2.88.2"
+	}
+}
