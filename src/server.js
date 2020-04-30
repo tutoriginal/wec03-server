@@ -6,7 +6,7 @@
 /*   By: ancoulon <ancoulon@student.s19.be>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/04/30 12:10:36 by ancoulon          #+#    #+#             */
-/*   Updated: 2020/04/30 17:42:49 by ancoulon         ###   ########.fr       */
+/*   Updated: 2020/04/30 17:44:01 by ancoulon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ mongoose.connect(config.mongo.uri, { useNewUrlParser: true, useUnifiedTopology: 
 
 const server = net.createServer(socket => {
 
-	var to = tosetTimeout(() => {
+	var to = setTimeout(() => {
 		socket.write('too late\n');
 		socket.end();
 	}, 3000);
