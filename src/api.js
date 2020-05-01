@@ -6,7 +6,7 @@
 /*   By: ancoulon <ancoulon@student.s19.be>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/04/30 12:24:13 by ancoulon          #+#    #+#             */
-/*   Updated: 2020/04/30 16:50:51 by ancoulon         ###   ########.fr       */
+/*   Updated: 2020/05/01 12:56:28 by ancoulon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,15 +24,11 @@ function requestToken(callback) {
 
 function SearchUser(login, callback) {
 	requestToken(token => {
-		if (token) {
-			request.get('https://api.intra.42.fr/v2/campus/12/users?filter[login]=' + login + "&access_token=" + token,
-				(err, res) => {
-					if (err) return callback(true, null);
-					return callback(false, JSON.parse(res.body).length > 0);
-				});
-		} else {
-			return callback(true, null);
-		}
+		if (!token) return callback(true, null);
+		request.get('https://api.intra.42.fr/v2/campus/12/users?filter[login]=' + login + "&access_token=" + token, (err, res) => {
+			if (err) return callback(true, null);
+			return callback(false, JSON.parse(res.body).length > 0);
+		});
 	});
 }
 

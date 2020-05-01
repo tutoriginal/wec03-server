@@ -6,7 +6,7 @@
 /*   By: ancoulon <ancoulon@student.s19.be>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/04/30 12:10:36 by ancoulon          #+#    #+#             */
-/*   Updated: 2020/04/30 17:44:01 by ancoulon         ###   ########.fr       */
+/*   Updated: 2020/05/01 13:14:30 by ancoulon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,94 +17,79 @@ const mongoose = require('mongoose');
 const api = require('./api');
 const Entry = require('./Entry');
 
-mongoose.connect(config.mongo.uri, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false });
+mongoose.connect(config.mongo.uri, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+	useFindAndModify: false
+});
 
 const server = net.createServer(socket => {
 
-	var to = setTimeout(() => {
+	var to = config.timeout ? setTimeout(() => {
 		socket.write('too late\n');
 		socket.end();
-	}, 3000);
+	}, 3000) : null;
 
-	socket.on('close', () => {
-		clearTimeout(to);
-		return;
-	});
-
-	var login = null;
-	var hash = null;
-	var code = null;
-	var res = null;
+	var user = {
+		login: null,
+		hash: null,
+		code: null,
+	}
 
 	socket.on('data', data => {
 
 		const message = data.toString();
 
-		if (message.startsWith('? ')) {
+		switch (message.substring(0, 2)) {
 
-			const content = message.substr(2).split(' ');
-			login = content[0];
-			hash = parseInt(content[1]);
-
-			if (!login || !hash || hash === NaN) {
-				socket.write('invalid data\n');
-				return socket.end();
-			}
-
-			api.SearchUser(login, (err, valid) => {
-				if (err) {
-					socket.write('internal error\n');
-					return socket.end();
-				} else if (!valid) {
-					socket.write('invalid data\n');
-					return socket.end();
-				} else {
-					code = parseInt(Math.random() * 46340, 10);
-					socket.write('= ' + code + '\n');
-				}
-			});
-
-		} else if (message.startsWith('! ') && login) {
-
-			res = parseInt(message.substr(2).split(' '));
-			if (res === NaN) {
-				socket.write('invalid data\n');
-				return socket.end();
-			}
-
-			if (res == Math.pow(code, 2)) {
-
-				Entry.findOneAndUpdate({ login: login }, { hash: hash, created_at: Date.now() }, (err, doc) => {
-					if (err) {
-						socket.write('internal error\n');
-						return socket.end();
-					} else if (doc) {
-						socket.write('success\n');
-						return socket.end();
-					} else {
-						Entry.create({ login: login, hash: hash, created_at: Date.now() }, (err2, doc2) => {
-							if (err) {
-								socket.write('internal error\n');
-								return socket.end();
-							} else {
-								socket.write('success\n');
-								return socket.end();
-							}
-						});
-					}
+			case '? ':
+				const content = message.substr(2).split(' ');
+				if (content.length != 2 || content[1] === NaN) return endConnection(socket, 'invalid data');
+				api.SearchUser(content[0], (err, valid) => {
+					if (err) return endConnection(socket, 'internal error');
+					if (!valid) return endConnection(socket, 'invalid data');
+					user.login = content[0];
+					user.hash = content[1];
+					user.code = parseInt(Math.random() * 46340, 10);
+					socket.write('= ' + user.code + '\n');
 				});
+				break;
 
-			} else {
-				socket.write('invalid data\n');
-				return socket.end();
-			}
+			case '! ':
+				if (!user.login) return endConnection(socket, 'invalid data');
+				var res = parseInt(message.substr(2).split(' '));
+				if (res === NaN) return endConnection(socket, 'invalid data');
+				if (res != Math.pow(user.code, 2)) return endConnection(socket, 'invalid data');
+				if (!config.save) return endConnection(socket, 'success');
+				if (config.log) console.log("new valid entry by: " + user.login);
+				Entry.findOneAndUpdate({ login: user.login }, { hash: user.hash, created_at: Date.now() }, (err0, doc0) => {
+					if (err0) return endConnection(socket, 'internal error');
+					if (doc0) return endConnection(socket, 'success');
+					Entry.create({ login: user.login, hash: user.hash, created_at: Date.now() }, (err1, doc1) => {
+						if (err1) return endConnection(socket, 'internal error');
+						return endConnection(socket, 'success');
+					});
+				});
+				break;
 
-		} else {
-			socket.write('invalid data\n');
-			return socket.end();
+			default:
+				endConnection(socket, 'invalid data');
+				break;
+
 		}
 
+		socket.on('close', () => {
+			clearTimeout(to);
+			return;
+		});
+
 	});
+
 });
 
 server.listen(config.server.port);
+
+function endConnection(socket, message) {
+	socket.write(message + '\n');
+	socket.end();
+}
