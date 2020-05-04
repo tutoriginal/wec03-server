@@ -6,7 +6,7 @@
 /*   By: ancoulon <ancoulon@student.s19.be>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/04/30 14:32:16 by ancoulon          #+#    #+#             */
-/*   Updated: 2020/04/30 16:50:44 by ancoulon         ###   ########.fr       */
+/*   Updated: 2020/05/02 11:35:53 by ancoulon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ const entrySchema = new mongoose.Schema({
 		required: true
 	},
 	hash: {
-		type: String,
+		type: Number,
 		required: true
 	},
 	created_at:

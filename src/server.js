@@ -6,7 +6,7 @@
 /*   By: ancoulon <ancoulon@student.s19.be>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/04/30 12:10:36 by ancoulon          #+#    #+#             */
-/*   Updated: 2020/05/01 13:14:30 by ancoulon         ###   ########.fr       */
+/*   Updated: 2020/05/04 13:37:27 by ancoulon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ const server = net.createServer(socket => {
 	var to = config.timeout ? setTimeout(() => {
 		socket.write('too late\n');
 		socket.end();
-	}, 3000) : null;
+	}, config.timeout) : null;
 
 	var user = {
 		login: null,
@@ -44,12 +44,14 @@ const server = net.createServer(socket => {
 
 			case '? ':
 				const content = message.substr(2).split(' ');
-				if (content.length != 2 || content[1] === NaN) return endConnection(socket, 'invalid data');
+				if (content.length != 2) return endConnection(socket, 'invalid data');
+				const hash = parseInt(content[1]);
+				if (isNaN(hash)) return endConnection(socket, 'invalid data');
 				api.SearchUser(content[0], (err, valid) => {
 					if (err) return endConnection(socket, 'internal error');
 					if (!valid) return endConnection(socket, 'invalid data');
 					user.login = content[0];
-					user.hash = content[1];
+					user.hash = hash;
 					user.code = parseInt(Math.random() * 46340, 10);
 					socket.write('= ' + user.code + '\n');
 				});
@@ -60,8 +62,8 @@ const server = net.createServer(socket => {
 				var res = parseInt(message.substr(2).split(' '));
 				if (res === NaN) return endConnection(socket, 'invalid data');
 				if (res != Math.pow(user.code, 2)) return endConnection(socket, 'invalid data');
+				if (config.log) console.log("new valid entry by: " + user.login + " with hash: " + user.hash);
 				if (!config.save) return endConnection(socket, 'success');
-				if (config.log) console.log("new valid entry by: " + user.login);
 				Entry.findOneAndUpdate({ login: user.login }, { hash: user.hash, created_at: Date.now() }, (err0, doc0) => {
 					if (err0) return endConnection(socket, 'internal error');
 					if (doc0) return endConnection(socket, 'success');
@@ -78,7 +80,17 @@ const server = net.createServer(socket => {
 
 		}
 
+		socket.on('end', () => {
+			clearTimeout(to);
+			return;
+		});
+
 		socket.on('close', () => {
+			clearTimeout(to);
+			return;
+		});
+
+		socket.on('error', () => {
 			clearTimeout(to);
 			return;
 		});
