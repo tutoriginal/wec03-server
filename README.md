@@ -52,7 +52,7 @@ LOG=true
 ```js
 SAVE=true
 ```
-> set TIMO to the time until the request times out (in milliseconds). do no set to remote timeout
+> set TIMO to the time until the request times out (in milliseconds). do no set to remove the timeout
 ```js
 TIMO=3000
 ```
